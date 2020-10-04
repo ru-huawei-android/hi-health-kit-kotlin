@@ -1,21 +1,6 @@
-/*
- * Copyright 2020. Huawei Technologies Co., Ltd. All rights reserved.
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-*/
-
 package com.sample.huawei.hihealth
 
+import android.annotation.TargetApi
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -66,6 +51,9 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
     }
 
 
+    // Так как магазин приложений Huawei AppGallery был запущен в 2018 году,
+    // он есть на моделях 2018+ года и минимальная версия Android 8.0 (Api 26)
+    @TargetApi(26)
     private val getSteps = View.OnClickListener {
         val timeout = 0
         // получаем время

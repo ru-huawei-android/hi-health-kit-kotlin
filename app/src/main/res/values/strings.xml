@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">HiHealth Kit</string>
+    <string name="app_name">HMS HiHealthKit</string>
     <string name="errorMessage">Something goes wrong, probably you haven\'t requested authorization yet. Or maybe you haven\'t allowed %1$s type of data</string>
     <string name="request_Authorization">Request Authorization</string>
     <string name="get_gender">Get gender</string>
