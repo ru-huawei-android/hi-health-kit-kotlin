@@ -16,7 +16,7 @@
     <string name="data_type_step_count">\"Step count\"</string>
     <string name="data_type_basic_personal_inf">\"Basic personal information\"</string>
     <string name="data_type_basic_measurement">\"Basic measurement\"</string>
-    <string name="weight">\"Weight: %1$d\"</string>
+    <string name="weight">Weight: %1$.2f</string>
     <string name="req_auth_success">Request Authorization success</string>
     <string name="req_auth_failed">Request Authorization failed</string>
     <string name="req_auth_param_invalid">Request Authorization failed due to invalid param</string>

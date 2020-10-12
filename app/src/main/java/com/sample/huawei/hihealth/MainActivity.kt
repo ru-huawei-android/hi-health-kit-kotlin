@@ -1,6 +1,5 @@
 package com.sample.huawei.hihealth
 
-import android.annotation.TargetApi
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -14,13 +13,7 @@ import com.huawei.hihealthkit.data.HiHealthPointData
 import com.huawei.hihealthkit.data.store.HiHealthDataStore
 import com.huawei.hihealthkit.data.type.HiHealthPointType
 import kotlinx.android.synthetic.main.activity_main.*
-
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
-import java.time.ZoneId
 import java.util.*
-import java.util.concurrent.TimeUnit
 
 
 class MainActivity : AppCompatActivity(R.layout.activity_main) {
@@ -51,24 +44,17 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
     }
 
 
-    // Так как магазин приложений Huawei AppGallery был запущен в 2018 году,
-    // он есть на моделях 2018+ года и минимальная версия Android 8.0 (Api 26)
-    @TargetApi(26)
     private val getSteps = View.OnClickListener {
         val timeout = 0
         // получаем время
-        val localDateTime = LocalDateTime.of(LocalDate.now(), LocalTime.MAX)
-        val zoneTime = localDateTime.atZone(ZoneId.systemDefault())
-        val endTime = zoneTime.toInstant().toEpochMilli()
-        var startTime: Long = 0
+        val endTime = System.currentTimeMillis()
+        var startTime: Long = getStartOfDay(Date())
 
-
-        val firstDayOfWeek = getFirstDayOfWeek(Calendar.DAY_OF_WEEK)
-        val firstDayOfMonth = getFirstDayOfWeek(Calendar.DAY_OF_MONTH)
-        val firstDayOfYear = getFirstDayOfWeek(Calendar.DAY_OF_YEAR)
+        val firstDayOfWeek = getFirstDayOf(Calendar.DAY_OF_WEEK)
+        val firstDayOfMonth = getFirstDayOf(Calendar.DAY_OF_MONTH)
+        val firstDayOfYear = getFirstDayOf(Calendar.DAY_OF_YEAR)
 
         when (radioGroup.checkedRadioButtonId) {
-            R.id.day -> startTime = endTime - TimeUnit.DAYS.toMillis(1)
             R.id.week -> startTime = firstDayOfWeek
             R.id.month -> startTime = firstDayOfMonth
             R.id.year -> startTime = firstDayOfYear
@@ -76,18 +62,20 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
 
         // Получаем ArrayList<HiHealthPointData>, который представляет значения для каждого дня
         val hiHealthDataQuery = HiHealthDataQuery(
-                HiHealthPointType.DATA_POINT_STEP_SUM,
-                startTime,
-                endTime,
-                HiHealthDataQueryOption()
+            HiHealthPointType.DATA_POINT_STEP_SUM,
+            startTime,
+            endTime,
+            HiHealthDataQueryOption()
         )
-        HiHealthDataStore.execQuery(applicationContext, hiHealthDataQuery, timeout) { resultCode, data ->
+        HiHealthDataStore.execQuery(
+            applicationContext,
+            hiHealthDataQuery,
+            timeout
+        ) { resultCode, data ->
             if (data != null) {
                 val dataList: List<HiHealthPointData> = data as ArrayList<HiHealthPointData>
                 var steps = 0;
-                for (obj in dataList) {
-                    steps += obj.value;
-                }
+                dataList.forEach { steps += it.value }
                 result.text = getString(R.string.steps, steps)
             } else {
                 showErrorMessage(getString(R.string.data_type_step_count))
@@ -111,9 +99,11 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
 
 
     private val getWeight = View.OnClickListener {
-        HiHealthDataStore.getWeight(applicationContext) { errorCode, weight ->
+        HiHealthDataStore.getWeight(applicationContext) { errorCode, w ->
             if (errorCode == HiHealthError.SUCCESS) {
-                result.text = "Weight: $weight"
+                if (w is Float) {
+                    result.text = getString(R.string.weight, w)
+                }
             } else {
                 showErrorMessage(getString(R.string.data_type_basic_measurement))
             }
@@ -121,14 +111,22 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
     }
 
     private val requestAuthorization = View.OnClickListener {
-        HiHealthAuth.requestAuthorization(applicationContext, writeWeightPermissions, readPermissions) { resultCode, resultDesc ->
+        HiHealthAuth.requestAuthorization(
+            applicationContext,
+            writeWeightPermissions,
+            readPermissions
+        ) { resultCode, resultDesc ->
             when (resultCode) {
                 HiHealthError.SUCCESS -> result.text = getString(R.string.req_auth_success)
                 HiHealthError.FAILED -> result.text = getString(R.string.req_auth_failed)
-                HiHealthError.PARAM_INVALIED -> result.text = getString(R.string.req_auth_param_invalid)
-                HiHealthError.ERR_API_EXECEPTION -> result.text = getString(R.string.req_auth_err_api_ex)
-                HiHealthError.ERR_PERMISSION_EXCEPTION -> result.text = getString(R.string.req_auth_err_perm_ex)
-                HiHealthError.ERR_SCOPE_EXCEPTION -> result.text = getString(R.string.req_auth_err_scope_ex)
+                HiHealthError.PARAM_INVALIED -> result.text =
+                    getString(R.string.req_auth_param_invalid)
+                HiHealthError.ERR_API_EXECEPTION -> result.text =
+                    getString(R.string.req_auth_err_api_ex)
+                HiHealthError.ERR_PERMISSION_EXCEPTION -> result.text =
+                    getString(R.string.req_auth_err_perm_ex)
+                HiHealthError.ERR_SCOPE_EXCEPTION -> result.text =
+                    getString(R.string.req_auth_err_scope_ex)
                 else -> result.text = getString(R.string.req_auth_err_undefined)
             }
 
@@ -140,7 +138,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
         result.text = getString(R.string.errorMessage, dataType)
     }
 
-    private fun getFirstDayOfWeek(dayOf: Int): Long {
+    private fun getFirstDayOf(dayOf: Int): Long {
         val cal = Calendar.getInstance()
         cal[Calendar.HOUR_OF_DAY] = 0 // ! clear would not reset the hour of day !
         cal.clear(Calendar.MINUTE)
@@ -162,5 +160,14 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
             }
             else -> 0
         }
+    }
+
+    private fun getStartOfDay(date: Date): Long {
+        val calendar = Calendar.getInstance()
+        val year = calendar[Calendar.YEAR]
+        val month = calendar[Calendar.MONTH]
+        val day = calendar[Calendar.DATE]
+        calendar[year, month, day, 0, 0] = 0
+        return calendar.timeInMillis
     }
 }
