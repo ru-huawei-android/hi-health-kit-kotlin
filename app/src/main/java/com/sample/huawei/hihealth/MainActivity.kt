@@ -5,6 +5,8 @@ import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.view.View.GONE
+import android.view.View.VISIBLE
 import androidx.appcompat.app.AppCompatActivity
 import com.huawei.hihealth.error.HiHealthError
 import com.huawei.hihealthkit.HiHealthDataQuery
@@ -20,6 +22,9 @@ import java.util.*
 private const val TAG: String = "MainActivity"
 
 private const val HUAWEI_HEALTH_APP_PACKAGE_NAME = "com.huawei.health"
+
+private const val PERMISSION_GRANTED = 1
+private const val PERMISSION_NOT_GRANTED = 2
 
 class MainActivity : AppCompatActivity(R.layout.activity_main) {
 
@@ -116,11 +121,41 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
     }
 
     private val requestAuthorization = View.OnClickListener {
+        HiHealthAuth.getDataAuthStatusEx(
+            applicationContext,
+            writeWeightPermissions,
+            readPermissions
+        ) { resultCode, resultDesc, writePermissions, readPermissions ->
+            Log.d(
+                TAG,
+                "getDataAuthStatusEx resultCode: $resultCode, " +
+                        "resultDesc: $resultDesc, " +
+                        "readPermissions: ${readPermissions.asList()}, " +
+                        "writePermissions: ${writePermissions.asList()}"
+            )
+
+            if (resultCode != HiHealthError.SUCCESS
+                || readPermissions.contains(PERMISSION_NOT_GRANTED)
+                || writePermissions.contains(PERMISSION_NOT_GRANTED)
+            ) {
+                startAuth()
+            } else {
+                result.text = getString(R.string.req_auth_already_success)
+            }
+        }
+    }
+
+    private fun startAuth() {
+        loadingView.visibility = VISIBLE
         HiHealthAuth.requestAuthorization(
             applicationContext,
             writeWeightPermissions,
             readPermissions
         ) { resultCode, resultDesc ->
+            Log.d(TAG, "requestAuthorization onResult: $resultCode, resultDesc: $resultDesc")
+
+            loadingView.visibility = GONE
+
             when (resultCode) {
                 HiHealthError.SUCCESS -> result.text = getString(R.string.req_auth_success)
                 HiHealthError.FAILED -> {
@@ -149,8 +184,6 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
                     getString(R.string.req_auth_err_scope_ex)
                 else -> result.text = getString(R.string.req_auth_err_undefined)
             }
-
-            Log.d(TAG, "requestAuthorization onResult: $resultCode, resultDesc: $resultDesc")
         }
     }
 
