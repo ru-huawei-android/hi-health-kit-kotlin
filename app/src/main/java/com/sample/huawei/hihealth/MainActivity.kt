@@ -1,8 +1,12 @@
 package com.sample.huawei.hihealth
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.view.View.GONE
+import android.view.View.VISIBLE
 import androidx.appcompat.app.AppCompatActivity
 import com.huawei.hihealth.error.HiHealthError
 import com.huawei.hihealthkit.HiHealthDataQuery
@@ -15,10 +19,14 @@ import com.huawei.hihealthkit.data.type.HiHealthPointType
 import kotlinx.android.synthetic.main.activity_main.*
 import java.util.*
 
+private const val TAG: String = "MainActivity"
+
+private const val HUAWEI_HEALTH_APP_PACKAGE_NAME = "com.huawei.health"
+
+private const val PERMISSION_GRANTED = 1
+private const val PERMISSION_NOT_GRANTED = 2
 
 class MainActivity : AppCompatActivity(R.layout.activity_main) {
-
-    private val TAG: String = "MainActivity"
 
     /*
         Массив пермишенов на чтение данных, которые мы хотим получить
@@ -48,7 +56,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
         val timeout = 0
         // получаем время
         val endTime = System.currentTimeMillis()
-        var startTime: Long = getStartOfDay(Date())
+        var startTime: Long = getStartOfDay()
 
         val firstDayOfWeek = getFirstDayOf(Calendar.DAY_OF_WEEK)
         val firstDayOfMonth = getFirstDayOf(Calendar.DAY_OF_MONTH)
@@ -72,9 +80,11 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
             hiHealthDataQuery,
             timeout
         ) { resultCode, data ->
+            Log.d(TAG, "HiHealthDataStore.execQuery resultCode: $resultCode")
             if (data != null) {
+                @Suppress("UNCHECKED_CAST")
                 val dataList: List<HiHealthPointData> = data as ArrayList<HiHealthPointData>
-                var steps = 0;
+                var steps = 0
                 dataList.forEach { steps += it.value }
                 result.text = getString(R.string.steps, steps)
             } else {
@@ -99,10 +109,10 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
 
 
     private val getWeight = View.OnClickListener {
-        HiHealthDataStore.getWeight(applicationContext) { errorCode, w ->
-            if (errorCode == HiHealthError.SUCCESS) {
-                if (w is Float) {
-                    result.text = getString(R.string.weight, w)
+        HiHealthDataStore.getWeight(applicationContext) { responseCode, weight ->
+            if (responseCode == HiHealthError.SUCCESS) {
+                if (weight is Float) {
+                    result.text = getString(R.string.weight, weight)
                 }
             } else {
                 showErrorMessage(getString(R.string.data_type_basic_measurement))
@@ -111,26 +121,69 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
     }
 
     private val requestAuthorization = View.OnClickListener {
+        HiHealthAuth.getDataAuthStatusEx(
+            applicationContext,
+            writeWeightPermissions,
+            readPermissions
+        ) { resultCode, resultDesc, writePermissions, readPermissions ->
+            Log.d(
+                TAG,
+                "getDataAuthStatusEx resultCode: $resultCode, " +
+                        "resultDesc: $resultDesc, " +
+                        "readPermissions: ${readPermissions.asList()}, " +
+                        "writePermissions: ${writePermissions.asList()}"
+            )
+
+            if (resultCode != HiHealthError.SUCCESS
+                || readPermissions.contains(PERMISSION_NOT_GRANTED)
+                || writePermissions.contains(PERMISSION_NOT_GRANTED)
+            ) {
+                startAuth()
+            } else {
+                result.text = getString(R.string.req_auth_already_success)
+            }
+        }
+    }
+
+    private fun startAuth() {
+        loadingView.visibility = VISIBLE
         HiHealthAuth.requestAuthorization(
             applicationContext,
             writeWeightPermissions,
             readPermissions
         ) { resultCode, resultDesc ->
+            Log.d(TAG, "requestAuthorization onResult: $resultCode, resultDesc: $resultDesc")
+
+            loadingView.visibility = GONE
+
             when (resultCode) {
                 HiHealthError.SUCCESS -> result.text = getString(R.string.req_auth_success)
-                HiHealthError.FAILED -> result.text = getString(R.string.req_auth_failed)
+                HiHealthError.FAILED -> {
+                    result.text = getString(R.string.req_auth_failed)
+                    //let user install Huawei Health app.
+                    startActivity(
+                        Intent(Intent.ACTION_VIEW).apply {
+                            data =
+                                Uri.parse("appmarket://details?id=$HUAWEI_HEALTH_APP_PACKAGE_NAME")
+                            // or use `data = Uri.parse("https://appgallery.cloud.huawei.com/marketshare/app/C10414141")`
+                        }
+                    )
+                }
                 HiHealthError.PARAM_INVALIED -> result.text =
                     getString(R.string.req_auth_param_invalid)
-                HiHealthError.ERR_API_EXECEPTION -> result.text =
-                    getString(R.string.req_auth_err_api_ex)
+                HiHealthError.ERR_API_EXECEPTION -> {
+                    result.text = getString(R.string.req_auth_err_api_ex)
+                    //let user launch HiHealth and allow data collection
+                    startActivity(
+                        packageManager.getLaunchIntentForPackage(HUAWEI_HEALTH_APP_PACKAGE_NAME)
+                    )
+                }
                 HiHealthError.ERR_PERMISSION_EXCEPTION -> result.text =
                     getString(R.string.req_auth_err_perm_ex)
                 HiHealthError.ERR_SCOPE_EXCEPTION -> result.text =
                     getString(R.string.req_auth_err_scope_ex)
                 else -> result.text = getString(R.string.req_auth_err_undefined)
             }
-
-            Log.d(TAG, "requestAuthorization onResult:$resultCode")
         }
     }
 
@@ -162,7 +215,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
         }
     }
 
-    private fun getStartOfDay(date: Date): Long {
+    private fun getStartOfDay(): Long {
         val calendar = Calendar.getInstance()
         val year = calendar[Calendar.YEAR]
         val month = calendar[Calendar.MONTH]

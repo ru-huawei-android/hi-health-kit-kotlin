@@ -18,6 +18,7 @@
     <string name="data_type_basic_measurement">\"Basic measurement\"</string>
     <string name="weight">Weight: %1$.2f</string>
     <string name="req_auth_success">Request Authorization success</string>
+    <string name="req_auth_already_success">Authorization already granted!</string>
     <string name="req_auth_failed">Request Authorization failed</string>
     <string name="req_auth_param_invalid">Request Authorization failed due to invalid param</string>
     <string name="req_auth_err_api_ex">Request Authorization failed due to api exception</string>
