@@ -15,10 +15,9 @@ import com.huawei.hihealthkit.data.type.HiHealthPointType
 import kotlinx.android.synthetic.main.activity_main.*
 import java.util.*
 
+private const val TAG: String = "MainActivity"
 
 class MainActivity : AppCompatActivity(R.layout.activity_main) {
-
-    private val TAG: String = "MainActivity"
 
     /*
         Массив пермишенов на чтение данных, которые мы хотим получить
@@ -48,7 +47,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
         val timeout = 0
         // получаем время
         val endTime = System.currentTimeMillis()
-        var startTime: Long = getStartOfDay(Date())
+        var startTime: Long = getStartOfDay()
 
         val firstDayOfWeek = getFirstDayOf(Calendar.DAY_OF_WEEK)
         val firstDayOfMonth = getFirstDayOf(Calendar.DAY_OF_MONTH)
@@ -72,9 +71,11 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
             hiHealthDataQuery,
             timeout
         ) { resultCode, data ->
+            Log.d(TAG, "HiHealthDataStore.execQuery resultCode: $resultCode")
             if (data != null) {
+                @Suppress("UNCHECKED_CAST")
                 val dataList: List<HiHealthPointData> = data as ArrayList<HiHealthPointData>
-                var steps = 0;
+                var steps = 0
                 dataList.forEach { steps += it.value }
                 result.text = getString(R.string.steps, steps)
             } else {
@@ -99,10 +100,10 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
 
 
     private val getWeight = View.OnClickListener {
-        HiHealthDataStore.getWeight(applicationContext) { errorCode, w ->
-            if (errorCode == HiHealthError.SUCCESS) {
-                if (w is Float) {
-                    result.text = getString(R.string.weight, w)
+        HiHealthDataStore.getWeight(applicationContext) { responseCode, weight ->
+            if (responseCode == HiHealthError.SUCCESS) {
+                if (weight is Float) {
+                    result.text = getString(R.string.weight, weight)
                 }
             } else {
                 showErrorMessage(getString(R.string.data_type_basic_measurement))
@@ -130,7 +131,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
                 else -> result.text = getString(R.string.req_auth_err_undefined)
             }
 
-            Log.d(TAG, "requestAuthorization onResult:$resultCode")
+            Log.d(TAG, "requestAuthorization onResult: $resultCode, resultDesc: $resultDesc")
         }
     }
 
@@ -162,7 +163,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
         }
     }
 
-    private fun getStartOfDay(date: Date): Long {
+    private fun getStartOfDay(): Long {
         val calendar = Calendar.getInstance()
         val year = calendar[Calendar.YEAR]
         val month = calendar[Calendar.MONTH]
