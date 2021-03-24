@@ -136,8 +136,13 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
                 }
                 HiHealthError.PARAM_INVALIED -> result.text =
                     getString(R.string.req_auth_param_invalid)
-                HiHealthError.ERR_API_EXECEPTION -> result.text =
-                    getString(R.string.req_auth_err_api_ex)
+                HiHealthError.ERR_API_EXECEPTION -> {
+                    result.text = getString(R.string.req_auth_err_api_ex)
+                    //let user launch HiHealth and allow data collection
+                    startActivity(
+                        packageManager.getLaunchIntentForPackage(HUAWEI_HEALTH_APP_PACKAGE_NAME)
+                    )
+                }
                 HiHealthError.ERR_PERMISSION_EXCEPTION -> result.text =
                     getString(R.string.req_auth_err_perm_ex)
                 HiHealthError.ERR_SCOPE_EXCEPTION -> result.text =
