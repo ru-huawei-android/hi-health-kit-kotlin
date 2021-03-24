@@ -1,5 +1,7 @@
 package com.sample.huawei.hihealth
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -16,6 +18,8 @@ import kotlinx.android.synthetic.main.activity_main.*
 import java.util.*
 
 private const val TAG: String = "MainActivity"
+
+private const val HUAWEI_HEALTH_APP_PACKAGE_NAME = "com.huawei.health"
 
 class MainActivity : AppCompatActivity(R.layout.activity_main) {
 
@@ -119,7 +123,17 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
         ) { resultCode, resultDesc ->
             when (resultCode) {
                 HiHealthError.SUCCESS -> result.text = getString(R.string.req_auth_success)
-                HiHealthError.FAILED -> result.text = getString(R.string.req_auth_failed)
+                HiHealthError.FAILED -> {
+                    result.text = getString(R.string.req_auth_failed)
+                    //let user install Huawei Health app.
+                    startActivity(
+                        Intent(Intent.ACTION_VIEW).apply {
+                            data =
+                                Uri.parse("appmarket://details?id=$HUAWEI_HEALTH_APP_PACKAGE_NAME")
+                            // or use `data = Uri.parse("https://appgallery.cloud.huawei.com/marketshare/app/C10414141")`
+                        }
+                    )
+                }
                 HiHealthError.PARAM_INVALIED -> result.text =
                     getString(R.string.req_auth_param_invalid)
                 HiHealthError.ERR_API_EXECEPTION -> result.text =
